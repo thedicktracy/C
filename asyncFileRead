@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <aio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+int main() {
+    int fd;
+    struct aiocb aio;
+    
+    fd = open("file.txt", O_RDONLY);
+    
+    if (fd == -1) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(&aio, 0, sizeof(struct aiocb));
+    
+    aio.aio_fildes = fd;
+    aio.aio_buf = malloc(4096);
+    aio.aio_nbytes = 4096;
+    aio.aio_offset = 0;
+    
+    aio_read(&aio); // Asynchronous read operation
+
+    // Do other tasks while the asynchronous read is in progress
+
+    // Wait until the asynchronous operation completes
+    while (aio_error(&aio) == EINPROGRESS) {
+        // Do something else or sleep for a while
+    }
+
+    // Handle the result of the asynchronous operation
+    ssize_t bytesRead = aio_return(&aio);
+    printf("Read %zd bytes: %s\n", bytesRead, (char *)aio.aio_buf);
+
+    close(fd);
+    free(aio.aio_buf);
+
+    return 0;
+}
